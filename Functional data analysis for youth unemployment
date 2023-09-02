@@ -1,0 +1,344 @@
+library("reshape2")
+library("lubridate")
+library("wesanderson")
+library("fda")
+library("tidyverse")
+library("patchwork")
+library("fda.usc")
+library("funFEM")
+setwd("C:\\Users\\Ana\\Desktop")
+# Load the data from the CSV file
+rawdat <- read.csv("multidata.csv", header = TRUE, na = c("", "NA"))
+head(rawdat)
+# Convert 'year' column to numeric
+rawdat$year <- as.numeric(rawdat$year)
+# Create clean datasets
+countries <- c("Bulgaria", "Croatia", "Cyprus", "Czechia", "Estonia", "Greece", "Hungary", "Italy", "Latvia", "Lithuania", "Malta", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain")
+
+dat_clean1 <- rawdat %>%
+  filter(country %in% countries) %>%
+  select(year, country, unemployment_y) %>%
+  group_by(country, year) %>%
+  summarise(Youth_Unemployment = sum(unemployment_y, na.rm = TRUE))
+dat_clean2 <- rawdat %>%
+  filter(country %in% countries, year >= 2011) %>%
+  select(year, country, upper_secondary) %>%
+  group_by(country, year) %>%
+  summarise(Upper_Secondary = sum(upper_secondary, na.rm = TRUE))
+dat_clean3 <- rawdat %>%
+  filter(country %in% countries, year >= 2011) %>%
+  select(year, country, unemployment_total) %>%
+  group_by(country, year) %>%
+  summarise(Unemployment_total = sum(unemployment_total, na.rm = TRUE))
+dat_clean4 <- rawdat %>%
+  filter(country %in% countries, year >= 2011) %>%
+  select(year, country, Temporary_Unemployment) %>%
+  group_by(country, year) %>%
+  summarise(Temporary_Unemployment = sum(Temporary_Unemployment, na.rm = TRUE))
+
+dat_clean5 <- rawdat %>%
+  filter(country %in% countries, year >= 2013) %>%
+  select(year, country, Involuntary_pt) %>%
+  group_by(country, year) %>%
+  summarise(Involuntary_part_time = sum(Involuntary_pt, na.rm = TRUE))
+
+
+# Create a color palette
+pal <- rev(wes_palette("Zissou1", n = length(countries), type = "continuous"))
+
+# Create plots for each dataset
+
+# Create plots for each dataset
+
+plot1 = ggplot(data=dat_clean1) + 
+  geom_line(aes(x=year, y=Youth_Unemployment, color=country), linewidth=1, na.rm = T) + 
+  scale_color_manual(values = pal) + 
+  scale_x_continuous(breaks = seq(min(dat_clean1$year), max(dat_clean1$year), by = 1)) +  # Force integer breaks
+  theme_classic(base_size = 14)
+
+plot2 = ggplot(data=dat_clean2) + 
+  geom_line(aes(x=year, y=Upper_Secondary, color=country), linewidth=1, na.rm = T) + 
+  scale_color_manual(values = pal) +
+  scale_x_continuous(breaks = seq(min(dat_clean2$year), max(dat_clean2$year), by = 1)) +  # Force integer breaks
+  theme_classic(base_size = 14)
+
+plot3 = ggplot(data=dat_clean3) + 
+  geom_line(aes(x=year, y=Unemployment_total, color=country), linewidth=1, na.rm = T) + 
+  scale_color_manual(values = pal) +
+  scale_x_continuous(breaks = seq(min(dat_clean3$year), max(dat_clean3$year), by = 1)) +  # Force integer breaks
+  theme_classic(base_size = 14)
+
+plot4 = ggplot(data=dat_clean4) + 
+  geom_line(aes(x=year, y=Temporary_Unemployment, color=country), linewidth=1, na.rm = T) + 
+  scale_color_manual(values = pal) +
+  scale_x_continuous(breaks = seq(min(dat_clean4$year), max(dat_clean4$year), by = 1)) +  # Force integer breaks
+  theme_classic(base_size = 14)
+
+plot5 = ggplot(data=dat_clean5) + 
+  geom_line(aes(x=year, y=Involuntary_part_time, color=country), linewidth=1, na.rm = T) + 
+  scale_color_manual(values = pal) +
+  scale_x_continuous(breaks = seq(min(dat_clean5$year), max(dat_clean5$year), by = 1)) +  # Force integer breaks
+  theme_classic(base_size = 14)
+
+
+# Print the plots
+print(plot1)
+print(plot2)
+print(plot3)
+print(plot4)
+print(plot5)
+
+# Descriptive statistics for Youth_Unemployment variable
+desc_stats_youth <- dat_clean1 %>%
+  group_by(country) %>%
+  summarise(
+    Mean = mean(Youth_Unemployment, na.rm = TRUE),
+    Max = max(Youth_Unemployment, na.rm = TRUE),
+    Min = min(Youth_Unemployment, na.rm = TRUE),
+    Peak_Year = year[which.max(Youth_Unemployment)],
+    Lowest_Year = year[which.min(Youth_Unemployment)]
+  )
+
+# Print the descriptive statistics table for Youth_Unemployment
+print("Descriptive Statistics for Youth_Unemployment")
+print(desc_stats_youth)
+
+# Descriptive statistics for Upper_Secondary variable
+desc_stats_upper_secondary <- dat_clean2 %>%
+  group_by(country) %>%
+  summarise(
+    Mean = mean(Upper_Secondary, na.rm = TRUE),
+    Max = max(Upper_Secondary, na.rm = TRUE),
+    Min = min(Upper_Secondary, na.rm = TRUE),
+    Peak_Year = year[which.max(Upper_Secondary)],
+    Lowest_Year = year[which.min(Upper_Secondary)]
+  )
+
+# Print the descriptive statistics table for Upper_Secondary
+print("Descriptive Statistics for Upper_Secondary")
+print(desc_stats_upper_secondary)
+
+# Descriptive statistics for Temporary Unemployment
+desc_stats_temp_unemp <- dat_clean4 %>%
+  group_by(country) %>%
+  summarise(
+    Mean = mean(Temporary_Unemployment, na.rm = TRUE),
+    Max = max(Temporary_Unemployment, na.rm = TRUE),
+    Min = min(Temporary_Unemployment, na.rm = TRUE),
+    Peak_Year = year[which.max(Temporary_Unemployment)],
+    Lowest_Year = year[which.min(Temporary_Unemployment)]
+  )
+
+# Print the descriptive statistics table for Temporary Unemployment
+cat("Descriptive Statistics for Temporary Unemployment\n")
+print(desc_stats_temp_unemp)
+# Descriptive statistics for Involuntary_part_time variable
+desc_stats_involuntary_part_time <- dat_clean5 %>%
+  group_by(country) %>%
+  summarise(
+    Mean = mean(Involuntary_part_time, na.rm = TRUE),
+    Max = max(Involuntary_part_time, na.rm = TRUE),
+    Min = min(Involuntary_part_time, na.rm = TRUE),
+    Peak_Year = year[which.max(Involuntary_part_time)],
+    Lowest_Year = year[which.min(Involuntary_part_time)]
+  )
+
+# Print the descriptive statistics table for Involuntary_part_time
+print("Descriptive Statistics for Involuntary_part_time")
+print(desc_stats_involuntary_part_time)
+
+basis_range1 <- range(rawdat$year)
+basis_range2 <- c(2011, max(rawdat$year))
+basis_range3 <- c(2011, max(rawdat$year))
+basis_range4 <- c(2011, max(rawdat$year))
+basis_range5 <- c(2013, max(rawdat$year))
+
+
+# Create B-spline basis functions
+basis_bs1 <- create.bspline.basis(rangeval = basis_range1, nbasis = 10, norder = 5)
+basis_bs2 <- create.bspline.basis(rangeval = basis_range2, nbasis = 10, norder = 5)
+basis_bs3 <- create.bspline.basis(rangeval = basis_range3, nbasis = 10, norder = 5)
+basis_bs4 <- create.bspline.basis(rangeval = basis_range4, nbasis = 10, norder = 5)
+basis_bs5 <- create.bspline.basis(rangeval = basis_range5, nbasis = 10, norder = 5)
+
+# Get data matrices for smoothing
+Mdat1 <- dat_clean1 %>%
+  pivot_wider(id_cols = year, names_from = country, values_from = Youth_Unemployment) %>%
+  data.matrix()
+
+Mdat1 <- Mdat1[, -1]
+
+Mdat2 = dat_clean2 %>% 
+  pivot_wider(id_cols = year,
+              names_from = country, 
+              values_from = Upper_Secondary) %>%
+  data.matrix()
+
+
+Mdat2 = Mdat2[,-1]
+
+Mdat3 = dat_clean3 %>% 
+  pivot_wider(id_cols = year,
+              names_from = country, 
+              values_from = Unemployment_total) %>%
+  data.matrix()
+
+
+Mdat3 = Mdat3[,-1]
+
+Mdat4 = dat_clean4 %>% 
+  pivot_wider(id_cols = year,
+              names_from = country, 
+              values_from = Temporary_Unemployment) %>%
+  data.matrix()
+
+
+Mdat4 = Mdat4[,-1]
+
+Mdat5 = dat_clean5 %>% 
+  pivot_wider(id_cols = year,
+              names_from = country, 
+              values_from = Involuntary_part_time) %>%
+  data.matrix()
+
+colnames(dat_clean5)
+
+Mdat5 = Mdat5[,-1]
+
+# Smooth the functional data using B-spline basis
+smoothPar1 <- fdPar(fdobj = basis_bs1, Lfdobj = 2, lambda = 1)
+smoothPar2 <- fdPar(fdobj = basis_bs2, Lfdobj = 2, lambda = 1)
+smoothPar3 <- fdPar(fdobj = basis_bs3, Lfdobj = 2, lambda = 1)
+smoothPar4 <- fdPar(fdobj = basis_bs4, Lfdobj = 2, lambda = 1)
+smoothPar5 <- fdPar(fdobj = basis_bs5, Lfdobj = 2, lambda = 1)
+dat_fd1 = smooth.basis(argvals = as.numeric(unique(dat_clean1$year)), y = Mdat1, fdParobj = smoothPar1)
+dat_fd2 = smooth.basis(argvals = as.numeric(unique(dat_clean2$year)), y = Mdat2, fdParobj = smoothPar2)
+dat_fd3 = smooth.basis(argvals = as.numeric(unique(dat_clean3$year)), y = Mdat3, fdParobj = smoothPar3)
+dat_fd4 = smooth.basis(argvals = as.numeric(unique(dat_clean4$year)), y = Mdat4, fdParobj = smoothPar4)
+dat_fd5 = smooth.basis(argvals = as.numeric(unique(dat_clean5$year)), y = Mdat5, fdParobj = smoothPar5)
+
+
+# Plot the smoothed functional data
+plot(dat_fd1)
+plot(dat_fd2)
+plot(dat_fd3)
+plot(dat_fd4)
+plot(dat_fd5)
+
+# Create a list of dat_clean datasets
+
+dat_clean_list <- list(dat_clean1, dat_clean2, dat_clean3, dat_clean4, dat_clean5)
+
+# Create a list of smoothed functional data
+dat_fd_list <- list(dat_fd1, dat_fd2, dat_fd3, dat_fd4, dat_fd5)
+
+# Loop through each dataset and plot the smoothed functional data
+for (i in 1:length(dat_clean_list)) {
+  country_names <- unique(dat_clean_list[[i]]$country)
+  plot_title <- switch(i,
+                       "1" = "Youth Unemployment",
+                       "2" = "Upper Secondary",
+                       "3" = "Unemployment Total",
+                       "4" = "Temporary Unemployment",
+                       "5" = "Involuntary Part-Time"
+  )
+  
+  plot(dat_fd_list[[i]], main = plot_title, xlab = "Year", ylab = "Value", 
+       col = 1:length(country_names), lwd = 2)
+  legend("topright", legend = country_names, col = 1:length(country_names), lwd = 2, cex = 0.8)
+  mtext(side = 4, line = 1, at = seq(0, 1, length.out = length(country_names)), 
+        text = country_names, cex = 0.8)
+}
+
+#Make Boxplots
+
+fd_obj1 <- as.fd(dat_fd1)
+boxplot(fd_obj1, xlab = "Time", ylab = "Youth Unemployment")
+
+fd_obj2 <- as.fd(dat_fd2)
+boxplot(fd_obj2, xlab = "Time", ylab = "Upper Secondary Education")
+
+fd_obj3 <- as.fd(dat_fd3)
+boxplot(fd_obj3, xlab = "Time", ylab = "Functional Values3")
+
+fd_obj4 <- as.fd(dat_fd4)
+boxplot(fd_obj4, xlab = "Time", ylab = "Temporary Work")
+
+fd_obj5 <- as.fd(dat_fd5)
+boxplot(fd_obj5, xlab = "Time", ylab = "Involuntary Part-time")
+
+# List of functional data objects
+fd_obj_list <- list(as.fd(dat_fd1), as.fd(dat_fd2), as.fd(dat_fd3), as.fd(dat_fd4), as.fd(dat_fd5))
+
+
+#Make Clusters
+
+res1 <- funFEM(fd_obj1, K=3)
+summary(res1)
+par(mfrow=c(1,2))
+plot(fd_obj1, col=res1$cls, lwd=2, lty=1)
+
+cluster_country_mapping <- data.frame(Country = country_names, Cluster = res1$cls)
+
+print(cluster_country_mapping)
+
+
+res2 <- funFEM(fd_obj2, K=3)
+summary(res2)
+par(mfrow=c(1,2))
+plot(fd_obj2, col=res2$cls, lwd=2, lty=1)
+
+cluster_country_mapping <- data.frame(Country = country_names, Cluster = res2$cls)
+
+print(cluster_country_mapping)
+
+res3 <- funFEM(fd_obj3, K=3)
+summary(res3)
+par(mfrow=c(1,2))
+plot(fd_obj3, col=res3$cls, lwd=2, lty=1)
+
+cluster_country_mapping <- data.frame(Country = country_names, Cluster = res3$cls)
+
+print(cluster_country_mapping)
+
+res4<- funFEM(fd_obj4, K=3)
+summary(res4)
+par(mfrow=c(1,2))
+plot(fd_obj4, col=res4$cls, lwd=2, lty=1)
+
+cluster_country_mapping <- data.frame(Country = country_names, Cluster = res4$cls)
+
+print(cluster_country_mapping)
+
+res5 <- funFEM(fd_obj5, K=3)
+summary(res5)
+par(mfrow=c(1,2))
+plot(fd_obj5, col=res5$cls, lwd=2, lty=1)
+
+cluster_country_mapping <- data.frame(Country = country_names, Cluster = res5$cls)
+
+print(cluster_country_mapping)
+
+
+fdmeans1 <- fd_obj1
+fdmeans1$coefs <- t(res1$prms$my)
+plot(fdmeans1, col=1:max(res1$cls), lwd=2)
+str(fdmeans1) 
+
+
+fdmeans2 <- fd_obj2
+fdmeans2$coefs <- t(res2$prms$my)
+plot(fdmeans2, col=1:max(res2$cls), lwd=2)
+str(fdmeans2) 
+
+fdmeans4 <- fd_obj4
+fdmeans4$coefs <- t(res4$prms$my)
+plot(fdmeans4, col=1:max(res4$cls), lwd=2)
+str(fdmeans4) 
+
+fdmeans5 <- fd_obj5
+fdmeans5$coefs <- t(res5$prms$my)
+plot(fdmeans5, col=1:max(res5$cls), lwd=2)
+str(fdmeans5) 
+
+
